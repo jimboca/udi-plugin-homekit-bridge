@@ -1,0 +1,22 @@
+<nodeDefs>
+    <nodeDef id="controller" nls="ctl">
+        <editors />
+        <sts>
+            <st id="ST" editor="cst" />
+            <st id="GV0" editor="COUNT" />
+            <st id="GV1" editor="bool" />
+            <st id="ERR" editor="errc" />
+        </sts>
+        <cmds>
+            <sends>
+                <cmd id="DON" />
+                <cmd id="DOF" />
+            </sends>
+            <accepts>
+                <cmd id="QUERY" />
+                <cmd id="REFRESH" />
+                <cmd id="SHOW_SETUP" />
+            </accepts>
+        </cmds>
+    </nodeDef>
+</nodeDefs>

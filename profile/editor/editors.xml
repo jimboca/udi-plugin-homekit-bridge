@@ -1,0 +1,14 @@
+<editors>
+    <editor id="bool">
+        <range uom="2" subset="0,1" />
+    </editor>
+    <editor id="cst">
+        <range uom="25" subset="0,1,2" nls="CST" />
+    </editor>
+    <editor id="COUNT">
+        <range uom="56" min="0" max="2147483647" prec="0" />
+    </editor>
+    <editor id="errc">
+        <range uom="25" subset="0-6" nls="ERRC" />
+    </editor>
+</editors>

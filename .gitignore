@@ -1,0 +1,21 @@
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.py[cod]
+logs/
+polyglot.py
+build.txt
+.env
+*.egg-info/
+.venv/
+env/
+*.cert
+*.key
+*.lock
+svc.pid
+snapshot-all.txt
+release-pg3-store.txt
+# Local archives from `make zip` / `make beta` / `make production` (PG3 deliverable is the zip).
+HomeKitBridge*.zip
+config/accessory.state
+config/bridge_state.json

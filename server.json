@@ -1,0 +1,23 @@
+{
+    "name": "HomeKitBridge",
+    "docs": "https://github.com/jimboca/udi-poly-homekit-bridge",
+    "type": "python3",
+    "executable": "homekit-bridge-poly.py",
+    "install": "install.sh",
+    "description": "Expose ISY devices to Apple Home via a HomeKit bridge",
+    "notice": "Pair this bridge in the Apple Home app using the setup code from the node server log (SHOW_SETUP command).",
+    "persist_folder": "config",
+    "logLevel": "INFO",
+    "shortPoll": "30",
+    "longPoll": "300",
+    "discover": true,
+    "customParams": {
+        "export_mode": "spoken",
+        "mapping_mode": "common",
+        "hap_port": "51826",
+        "hap_pin": "",
+        "bridge_name": "ISY Bridge",
+        "advertise_ip": ""
+    },
+    "profile_version": "1.0.0"
+}
