@@ -1,4 +1,4 @@
-# udi-poly-homekit-bridge
+# udi-plugin-homekit-bridge
 
 Expose selected ISY / IoX devices to **Apple Home** via a local HomeKit bridge on Polisy or eISY.
 
@@ -7,7 +7,7 @@ Pair with the sibling plugin **`udi-poly-homekit-hub`** (which imports HomeKit a
 | Plugin | Direction |
 |--------|-----------|
 | `udi-poly-homekit-hub` | HomeKit accessories → ISY |
-| `udi-poly-homekit-bridge` | ISY → Apple Home |
+| `udi-plugin-homekit-bridge` | ISY → Apple Home |
 
 ## Requirements
 

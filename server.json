@@ -1,6 +1,6 @@
 {
     "name": "HomeKitBridge",
-    "docs": "https://github.com/jimboca/udi-poly-homekit-bridge",
+    "docs": "https://github.com/jimboca/udi-plugin-homekit-bridge",
     "type": "python3",
     "executable": "homekit-bridge-poly.py",
     "install": "install.sh",
