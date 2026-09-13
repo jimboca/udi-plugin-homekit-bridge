@@ -1,4 +1,4 @@
-"""HAP-python bridge server exposing ISY devices to Apple Home."""
+"""HAP-python bridge server exposing IoX devices to Apple Home."""
 
 from __future__ import annotations
 
@@ -77,7 +77,7 @@ class IsyHomeKitBridge:
             try:
                 accessory.sync_from_isy(notify=True)
             except Exception:
-                LOGGER.exception('Failed syncing %s from ISY', address)
+                LOGGER.exception('Failed syncing %s from IoX', address)
 
         self._driver.loop.call_soon_threadsafe(_sync)
 

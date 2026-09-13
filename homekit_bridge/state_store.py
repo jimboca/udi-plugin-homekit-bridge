@@ -13,7 +13,7 @@ STATE_VERSION = 1
 
 
 class BridgeStateStore:
-    """Maps ISY node addresses to stable HomeKit accessory IDs (aid)."""
+    """Maps IoX node addresses to stable HomeKit accessory IDs (aid)."""
 
     def __init__(self, path: str) -> None:
         self.path = path

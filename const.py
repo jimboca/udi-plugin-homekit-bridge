@@ -1,4 +1,4 @@
-"""Shared constants for the ISY HomeKit exporter."""
+"""Shared constants for the IoX HomeKit exporter."""
 
 VERSION = '1.0.0'
 
@@ -40,7 +40,7 @@ DEFAULT_BRIDGE_PARAMS = {
     'mapping_mode': MAPPING_MODE_COMMON,
     'hap_port': '51826',
     'hap_pin': '',
-    'bridge_name': 'ISY Bridge',
+    'bridge_name': 'IoX Bridge',
     'advertise_ip': '',
 }
 

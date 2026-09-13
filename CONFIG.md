@@ -1,14 +1,14 @@
-# ISY HomeKit Bridge — Configuration
+# IoX HomeKit Bridge — Configuration
 
-This node server advertises a **HomeKit bridge** on your LAN. Add it in the Apple Home app, then control exported ISY devices from HomeKit and Siri.
+This node server advertises a **HomeKit bridge** on your LAN. Add it in the Apple Home app, then control exported IoX devices from HomeKit and Siri.
 
 ## Prerequisites
 
-1. Install **HomeKit Bridge** in the Polyglot store.
+1. Install **HomeKit Bridge** in the PG3 store.
 2. Open the node server **Configuration** page.
-3. Enable **Allow Unrestricted ISY Access by Node Server**, click **Save**, then **Restart** the node server.
+3. Enable **Allow Unrestricted IoX Access by Node Server**, click **Save**, then **Restart** the node server.
 
-ISY credentials are provided by PG3 through `udi_interface.ISY` — you do not enter ISY host/user/password here.
+IoX credentials are provided by PG3 through `udi_interface.ISY` — you do not enter IoX host/user/password here.
 
 ## Custom parameters
 
@@ -18,16 +18,16 @@ ISY credentials are provided by PG3 through `udi_interface.ISY` — you do not e
 | `mapping_mode` | `common` | `common` or `broad` |
 | `hap_port` | `51826` | HomeKit HAP TCP port |
 | `hap_pin` | *(auto)* | 8-digit setup code (`123-45-678`). Leave empty to auto-generate and persist. |
-| `bridge_name` | `ISY Bridge` | Name shown in Apple Home |
-| `advertise_ip` | *(auto)* | LAN IP to advertise. Leave empty to use the Polisy/eISY default interface. |
+| `bridge_name` | `IoX Bridge` | Name shown in Apple Home |
+| `advertise_ip` | *(auto)* | LAN IP to advertise. Leave empty to use the eISY default interface. |
 
 ### Export modes
 
 | Mode | Behavior |
 |------|----------|
-| `spoken` | Export nodes with the ISY **Spoken** note (set `1` to use the device name, same as Hue Emulator) |
+| `spoken` | Export nodes with the IoX **Spoken** note (set `1` to use the device name, or a different desired name) |
 | `hybrid` | Spoken nodes plus typed **Exported devices** rows (`include` / `exclude` / `rename`) |
-| `all` | Export all ISY nodes that map to a supported HomeKit type; typed `exclude` rows still apply |
+| `all` | Export all IoX nodes that map to a supported HomeKit type; typed `exclude` rows still apply |
 
 ### Mapping modes
 
@@ -40,10 +40,22 @@ ISY credentials are provided by PG3 through `udi_interface.ISY` — you do not e
 
 | Column | Description |
 |--------|-------------|
-| `node_address` | ISY node address or name |
-| `action` | `include`, `exclude`, or `rename` |
+| `node_address` | IoX node address or name |
+| `action` | `include`, `exclude`, or `rename` (see below) |
 | `homekit_name` | Optional display name in Apple Home |
 | `hap_type` | Optional forced type: `light`, `switch`, `fan`, `thermostat`, `contact`, `motion`, `lock`, `blind` |
+
+#### Actions
+
+| Action | What it does |
+|--------|----------------|
+| `include` | Export this node even if it has no Spoken note. Used in **`hybrid`** to add devices beyond Spoken. In **`spoken`** mode typed rows are ignored for selection. In **`all`** mode every supported node is already exported, so `include` is unnecessary. |
+| `exclude` | Never export this node. Works in **`hybrid`** (overrides Spoken) and **`all`**. Ignored in **`spoken`** mode (selection is Spoken-only). |
+| `rename` | Keep the node’s normal export membership, but set its Apple Home name from `homekit_name`. The node must already be selected by Spoken / `include` / `all`. |
+
+**`homekit_name` tip:** On an `include` row, `homekit_name` also sets the Apple Home display name when present. For Spoken-selected devices you want to keep exporting, use `rename` plus `homekit_name` instead of changing the Spoken note.
+
+**`hap_type` tip:** Optional on any row. Forces the HomeKit accessory type when auto-mapping is wrong (for example treat a dimmer as `light`).
 
 ## Apple Home pairing
 
@@ -60,17 +72,17 @@ ISY credentials are provided by PG3 through `udi_interface.ISY` — you do not e
 |--------|---------|
 | `ST` | `Stopped` / `Running` / `Paired` |
 | `GV0` | Exported device count |
-| `GV1` | ISY connected |
+| `GV1` | IoX connected |
 | `ERR` | Error code (see profile NLS) |
 
 | Command | Action |
 |---------|--------|
-| `REFRESH` | Rescan ISY and restart the bridge |
+| `REFRESH` | Rescan IoX and restart the bridge |
 | `SHOW_SETUP` | Log/display HomeKit pairing code |
 
 ## Spoken property (spoken export mode)
 
-In the ISY Admin Console, open a device's **Notes** and set **Spoken**:
+In the IoX Admin Console, open a device's **Notes** and set **Spoken**:
 
 - `1` — use the device name in HomeKit
 - Any other plain ASCII string — custom spoken name
@@ -81,12 +93,11 @@ For scenes, prefer setting Spoken on the scene controller you want to track (sam
 
 | Issue | Fix |
 |-------|-----|
-| `ERR` = ISY access not authorized | Enable unrestricted ISY access and restart |
+| `ERR` = IoX access not authorized | Enable unrestricted IoX access and restart |
 | No devices exported | Check Spoken notes or switch to `hybrid`/`all` |
 | Home app cannot find bridge | Verify `hap_port` is not blocked; set `advertise_ip` to your LAN IP |
 | Devices changed IDs in HomeKit | Do not delete `config/bridge_state.json` or `config/accessory.state` |
 
 ## Related plugins
 
-- **udi-poly-homekit-hub** — pairs *to* HomeKit accessories (Ecobee, etc.); orthogonal to this exporter.
-- **udi-poly-hue-emu** — ISY → Hue API for Harmony/Alexa; similar Spoken selection logic.
+- **udi-plugin-hue-emu** — IoX → Hue API for Harmony/Alexa; similar Spoken selection logic.

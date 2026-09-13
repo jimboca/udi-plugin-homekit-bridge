@@ -1,4 +1,4 @@
-"""Thermostat accessory (basic heat/cool setpoints from ISY status)."""
+"""Thermostat accessory (basic heat/cool setpoints from IoX status)."""
 
 from __future__ import annotations
 

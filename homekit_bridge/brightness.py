@@ -1,4 +1,4 @@
-"""Brightness conversion between ISY (0-255) and HomeKit (0-100)."""
+"""Brightness conversion between IoX (0-255) and HomeKit (0-100)."""
 
 from __future__ import annotations
 

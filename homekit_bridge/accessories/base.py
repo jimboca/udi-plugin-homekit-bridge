@@ -1,4 +1,4 @@
-"""Base HomeKit accessory wired to an ISY exported device."""
+"""Base HomeKit accessory wired to an IoX exported device."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ CATEGORY_BY_HAP_TYPE = {
 
 
 class ISYAccessoryBase(Accessory):
-    """Common ISY ↔ HAP sync for exported devices."""
+    """Common IoX ↔ HAP sync for exported devices."""
 
     def __init__(
         self,
@@ -45,7 +45,7 @@ class ISYAccessoryBase(Accessory):
         super().__init__(driver, device.display_name, aid=device.aid)
         self.set_info_service(
             manufacturer='Universal Devices',
-            model='ISY',
+            model='IoX',
             serial_number=device.address,
         )
         self._status_handler = None

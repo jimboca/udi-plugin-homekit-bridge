@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Polyglot PG3x ISY → HomeKit bridge Node Server entry point."""
+"""PG3x IoX → HomeKit bridge plugin entry point."""
 
 import sys
 
@@ -17,11 +17,11 @@ def main() -> None:
         )
         sys.exit(1)
     try:
-        polyglot = Interface([Controller])
-        polyglot.start(VERSION)
-        polyglot.updateProfile()
-        Controller(polyglot, 'controller', 'controller', 'ISY HomeKit Bridge')
-        polyglot.runForever()
+        plugin = Interface([Controller])
+        plugin.start(VERSION)
+        plugin.updateProfile()
+        Controller(plugin, 'controller', 'controller', 'IoX HomeKit Bridge')
+        plugin.runForever()
     except (KeyboardInterrupt, SystemExit):
         LOGGER.warning('Interrupt or exit')
     except Exception as err:

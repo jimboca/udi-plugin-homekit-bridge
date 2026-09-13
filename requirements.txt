@@ -1,4 +1,4 @@
-# PG3x Node Server runtime (install on the Polyglot host).
+# PG3x Node Server runtime (install on the PG3 host).
 # Requires Python 3.10+. PyISY comes transitively via udi_interface.
 udi_interface>=3.0.31
 HAP-python[QRCode]>=5.0

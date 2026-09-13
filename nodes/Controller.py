@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PG3 controller for the ISY → HomeKit bridge."""
+"""PG3 controller for the IoX → HomeKit bridge."""
 
 from __future__ import annotations
 
@@ -35,8 +35,8 @@ _ACCESSORY_STATE_FILE = _CONFIG_DIR / 'accessory.state'
 class Controller(Node):
     """Single IoX node that runs the HomeKit bridge."""
 
-    def __init__(self, poly, primary, address, name):
-        super().__init__(poly, primary, address, name)
+    def __init__(self, plugin, primary, address, name):
+        super().__init__(plugin, primary, address, name)
         self.hb = 0
         self.isy: Optional[ISY] = None
         self.pyisy = None
@@ -46,26 +46,26 @@ class Controller(Node):
         self.handler_params_st = False
         self.handler_config_st = False
         self._config_snap: Dict[str, str] = {}
-        self.Notices = Custom(poly, 'notices')
-        self.Params = Custom(poly, 'customparams')
-        self.TypedParams = Custom(poly, 'customtypedparams')
-        self.TypedData = Custom(poly, 'customtypeddata')
-        poly.subscribe(poly.START, self.handler_start, address)
-        poly.subscribe(poly.POLL, self.handler_poll)
-        poly.subscribe(poly.CUSTOMPARAMS, self.handler_custom_params)
-        poly.subscribe(poly.CUSTOMTYPEDPARAMS, self.handler_typed_params)
-        poly.subscribe(poly.CUSTOMTYPEDDATA, self.handler_typed_data)
-        poly.subscribe(poly.LOGLEVEL, self.handler_log_level)
-        poly.subscribe(poly.CONFIGDONE, self.handler_config_done)
-        poly.subscribe(poly.STOP, self.handler_stop)
+        self.Notices = Custom(plugin, 'notices')
+        self.Params = Custom(plugin, 'customparams')
+        self.TypedParams = Custom(plugin, 'customtypedparams')
+        self.TypedData = Custom(plugin, 'customtypeddata')
+        plugin.subscribe(plugin.START, self.handler_start, address)
+        plugin.subscribe(plugin.POLL, self.handler_poll)
+        plugin.subscribe(plugin.CUSTOMPARAMS, self.handler_custom_params)
+        plugin.subscribe(plugin.CUSTOMTYPEDPARAMS, self.handler_typed_params)
+        plugin.subscribe(plugin.CUSTOMTYPEDDATA, self.handler_typed_data)
+        plugin.subscribe(plugin.LOGLEVEL, self.handler_log_level)
+        plugin.subscribe(plugin.CONFIGDONE, self.handler_config_done)
+        plugin.subscribe(plugin.STOP, self.handler_stop)
         self.commands = {
             'REFRESH': self.cmd_refresh,
             'SHOW_SETUP': self.cmd_show_setup,
         }
         self.init_typed_params()
         self.Notices.clear()
-        poly.ready()
-        poly.addNode(self, conn_status='ST')
+        plugin.ready()
+        plugin.addNode(self, conn_status='ST')
 
     def init_typed_params(self) -> None:
         self.TypedParams.load(
@@ -103,7 +103,7 @@ class Controller(Node):
         )
 
     def handler_start(self) -> None:
-        LOGGER.info('Started ISY HomeKit bridge %s', self.poly.serverdata.get('version'))
+        LOGGER.info('Started IoX HomeKit bridge %s', self.poly.serverdata.get('version'))
         config_help = Path(__file__).resolve().parent.parent / 'CONFIG.md'
         if config_help.is_file():
             try:
@@ -225,7 +225,7 @@ class Controller(Node):
             self.setDriver('GV1', 0)
             self.Notices.send(
                 'isy_access',
-                'Enable Allow Unrestricted ISY Access by Node Server, Save, then Restart.',
+                'Enable Allow Unrestricted IoX Access by Node Server, Save, then Restart.',
             )
             return False
         if not self.isy.valid:

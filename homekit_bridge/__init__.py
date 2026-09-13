@@ -1,4 +1,4 @@
-"""ISY → HomeKit bridge package."""
+"""IoX → HomeKit bridge package."""
 
 from homekit_bridge.bridge_server import IsyHomeKitBridge
 from homekit_bridge.isy_scanner import ExportedDevice, scan_export_devices

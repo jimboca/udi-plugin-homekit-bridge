@@ -1,4 +1,4 @@
-"""ISY node type classification for HomeKit mapping."""
+"""IoX node type classification for HomeKit mapping."""
 
 from __future__ import annotations
 

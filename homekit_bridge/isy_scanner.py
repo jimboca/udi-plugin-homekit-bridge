@@ -1,4 +1,4 @@
-"""Discover ISY nodes to export based on export_mode and typed overrides."""
+"""Discover IoX nodes to export based on export_mode and typed overrides."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Accessory factory for exported ISY devices."""
+"""Accessory factory for exported IoX devices."""
 
 from __future__ import annotations
 
