@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PG3x IoX → HomeKit bridge plugin entry point."""
+"""Plugins IoX → HomeKit bridge plugin entry point."""
 
 import sys
 

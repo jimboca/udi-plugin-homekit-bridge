@@ -118,7 +118,7 @@ def classify_node(
         if 'temperature' in name_blob and 'thermostat' not in name_blob:
             return HAP_TYPE_TEMP_SENSOR
         if node_def.startswith('n') and '_' in getattr(node, 'address', ''):
-            # PG3 node-server devices often have nNNN_ addresses.
+            # Plugins node-server devices often have nNNN_ addresses.
             if any(token in name_blob for token in ('sensor', 'weather')):
                 return HAP_TYPE_TEMP_SENSOR
 

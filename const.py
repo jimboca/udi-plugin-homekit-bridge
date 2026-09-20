@@ -26,6 +26,9 @@ HAP_TYPE_HUMIDITY_SENSOR = 'humidity_sensor'
 
 MAX_BRIDGE_ACCESSORIES = 150
 
+# Default Advertise window (minutes) before mDNS/HAP pairing stops when unpaired.
+DEFAULT_ADVERTISE_TIMEOUT_MINUTES = 5
+
 # IoX ERR driver (UOM 25)
 ERR_OK = 0
 ERR_BRIDGE_START = 1
@@ -42,6 +45,7 @@ DEFAULT_BRIDGE_PARAMS = {
     'hap_pin': '',
     'bridge_name': 'IoX Bridge',
     'advertise_ip': '',
+    'advertise_timeout': str(DEFAULT_ADVERTISE_TIMEOUT_MINUTES),
 }
 
 BRIDGE_RESTART_KEYS = (

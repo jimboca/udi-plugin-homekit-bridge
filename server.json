@@ -5,7 +5,7 @@
     "executable": "homekit-bridge-plugin.py",
     "install": "install.sh",
     "description": "Expose IoX devices to Apple Home via a HomeKit bridge",
-    "notice": "Pair this bridge in the Apple Home app using the setup code from the node server log (SHOW_SETUP command).",
+    "notice": "Click Discover (or set Advertise On) to open a timed pairing window, then use Show HomeKit Setup for the QR code / PIN in Plugins Notices.",
     "persist_folder": "config",
     "logLevel": "INFO",
     "shortPoll": "30",
@@ -17,7 +17,8 @@
         "hap_port": "51826",
         "hap_pin": "",
         "bridge_name": "IoX Bridge",
-        "advertise_ip": ""
+        "advertise_ip": "",
+        "advertise_timeout": "5"
     },
     "profile_version": "1.0.0"
 }

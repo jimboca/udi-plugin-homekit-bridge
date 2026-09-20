@@ -14,8 +14,8 @@ env/
 *.lock
 svc.pid
 snapshot-all.txt
-release-pg3-store.txt
-# Local archives from `make zip` / `make beta` / `make production` (PG3 deliverable is the zip).
+release-plugins-store.txt
+# Local archives from `make zip` / `make beta` / `make production` (Plugins deliverable is the zip).
 HomeKitBridge*.zip
 config/accessory.state
 config/bridge_state.json

@@ -5,6 +5,7 @@
             <st id="ST" editor="cst" />
             <st id="GV0" editor="COUNT" />
             <st id="GV1" editor="bool" />
+            <st id="GV2" editor="bool" />
             <st id="ERR" editor="errc" />
         </sts>
         <cmds>
@@ -16,6 +17,9 @@
                 <cmd id="QUERY" />
                 <cmd id="REFRESH" />
                 <cmd id="SHOW_SETUP" />
+                <cmd id="SET_ADVERTISE">
+                    <p id="" editor="bool" init="GV2" />
+                </cmd>
             </accepts>
         </cmds>
     </nodeDef>

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""PG3 controller for the IoX → HomeKit bridge."""
+"""Plugins controller for the IoX → HomeKit bridge."""
 
 from __future__ import annotations
 
+import json
 import logging
 import time
 from pathlib import Path
@@ -13,6 +14,7 @@ from udi_interface import Custom, ISY, LOGGER, LOG_HANDLER, Node, get_network_in
 
 from const import (
     BRIDGE_RESTART_KEYS,
+    DEFAULT_ADVERTISE_TIMEOUT_MINUTES,
     DEFAULT_BRIDGE_PARAMS,
     ERR_BRIDGE_START,
     ERR_BRIDGE_STOP,
@@ -26,6 +28,11 @@ from const import (
     TYPED_EXPORT_DEVICES_KEY,
 )
 from homekit_bridge import BridgeStateStore, IsyHomeKitBridge, scan_export_devices
+from homekit_bridge.setup_notice import (
+    build_setup_details,
+    format_setup_log_message,
+    format_setup_notice_html,
+)
 
 _CONFIG_DIR = Path('config')
 _BRIDGE_STATE_FILE = _CONFIG_DIR / 'bridge_state.json'
@@ -46,6 +53,7 @@ class Controller(Node):
         self.handler_params_st = False
         self.handler_config_st = False
         self._config_snap: Dict[str, str] = {}
+        self._advertise_until = 0.0
         self.Notices = Custom(plugin, 'notices')
         self.Params = Custom(plugin, 'customparams')
         self.TypedParams = Custom(plugin, 'customtypedparams')
@@ -58,9 +66,12 @@ class Controller(Node):
         plugin.subscribe(plugin.LOGLEVEL, self.handler_log_level)
         plugin.subscribe(plugin.CONFIGDONE, self.handler_config_done)
         plugin.subscribe(plugin.STOP, self.handler_stop)
+        plugin.subscribe(plugin.DISCOVER, self.handler_discover)
         self.commands = {
+            'QUERY': self.query,
             'REFRESH': self.cmd_refresh,
             'SHOW_SETUP': self.cmd_show_setup,
+            'SET_ADVERTISE': self.cmd_set_advertise,
         }
         self.init_typed_params()
         self.Notices.clear()
@@ -118,6 +129,7 @@ class Controller(Node):
         self.setDriver('ST', 0)
         self.setDriver('GV0', 0)
         self.setDriver('GV1', 0)
+        self.setDriver('GV2', 0)
         self.set_err(ERR_OK)
         self.heartbeat(0)
 
@@ -143,6 +155,12 @@ class Controller(Node):
         mapping_mode = str(self.Params.get('mapping_mode', defaults['mapping_mode'])).strip().lower()
         if mapping_mode not in MAPPING_MODES:
             self.Params['mapping_mode'] = defaults['mapping_mode']
+        try:
+            timeout = int(str(self.Params.get('advertise_timeout', defaults['advertise_timeout'])).strip())
+            if timeout < 1:
+                raise ValueError('timeout must be >= 1')
+        except (TypeError, ValueError):
+            self.Params['advertise_timeout'] = defaults['advertise_timeout']
         self.handler_params_st = True
 
     def handler_typed_params(self, _data) -> None:
@@ -156,6 +174,7 @@ class Controller(Node):
         self.poly.addLogLevel('DEBUG_MODULES', 9, 'Debug + Modules')
         self._config_snap = self._params_snapshot()
         self.state_store.load()
+        # Scan devices; only start HAP when already paired or Advertise is on.
         if self.refresh_bridge(force=True):
             self.handler_config_st = True
 
@@ -169,11 +188,17 @@ class Controller(Node):
                 self.setDriver('GV1', 0)
                 self.init_isy()
         elif polltype == 'shortPoll':
-            if self.bridge is None or not self.bridge.running:
+            self._check_advertise_timeout()
+            if self._should_run_hap() and (self.bridge is None or not self.bridge.running):
                 self.refresh_bridge(force=False)
 
     def handler_stop(self) -> None:
         self.stop_bridge()
+
+    def handler_discover(self, _data=None) -> None:
+        """Plugins UI Discover button → open the timed HomeKit Advertise window."""
+        LOGGER.info('Discover requested — enabling HomeKit Advertise')
+        self.set_advertise(1)
 
     def _params_snapshot(self) -> Dict[str, str]:
         snap = {}
@@ -210,6 +235,78 @@ class Controller(Node):
             'export_mode': str(self.Params.get('export_mode', DEFAULT_BRIDGE_PARAMS['export_mode'])),
             'mapping_mode': str(self.Params.get('mapping_mode', DEFAULT_BRIDGE_PARAMS['mapping_mode'])),
         }
+
+    def _advertise_timeout_minutes(self) -> int:
+        try:
+            return max(1, int(str(self.Params.get('advertise_timeout', DEFAULT_ADVERTISE_TIMEOUT_MINUTES))))
+        except (TypeError, ValueError):
+            return DEFAULT_ADVERTISE_TIMEOUT_MINUTES
+
+    def persist_is_paired(self) -> bool:
+        """True if accessory.state already has Apple Home paired clients."""
+        if self.bridge is not None and self.bridge.is_paired():
+            return True
+        path = _ACCESSORY_STATE_FILE
+        if not path.is_file():
+            return False
+        try:
+            data = json.loads(path.read_text(encoding='utf-8'))
+            clients = data.get('paired_clients') or {}
+            return bool(clients)
+        except Exception:
+            LOGGER.exception('Failed reading %s', path)
+            return False
+
+    def get_advertise(self) -> int:
+        try:
+            return int(self.getDriver('GV2') or 0)
+        except Exception:
+            return 0
+
+    def _should_run_hap(self) -> bool:
+        return self.get_advertise() == 1 or self.persist_is_paired()
+
+    def _check_advertise_timeout(self) -> None:
+        if self.get_advertise() != 1:
+            return
+        if self._advertise_until <= 0:
+            return
+        if time.time() < self._advertise_until:
+            return
+        LOGGER.info('Advertise window timed out')
+        self.Notices.send(
+            'advertise',
+            f'HomeKit Advertise timed out after {self._advertise_timeout_minutes()} minute(s).',
+        )
+        self.set_advertise(0)
+
+    def set_advertise(self, val: int) -> None:
+        enabled = 1 if int(val) else 0
+        if enabled:
+            minutes = self._advertise_timeout_minutes()
+            self._advertise_until = time.time() + (minutes * 60)
+            self.setDriver('GV2', 1)
+            LOGGER.info('HomeKit Advertise enabled for %s minute(s)', minutes)
+            self.Notices.send(
+                'advertise',
+                f'HomeKit Advertise On for {minutes} minute(s). Pairing details are in the HomeKit pairing notice below.',
+            )
+            self.refresh_bridge(force=True)
+            if self.bridge is not None and self.bridge.running:
+                self.cmd_show_setup()
+        else:
+            self._advertise_until = 0.0
+            self.setDriver('GV2', 0)
+            LOGGER.info('HomeKit Advertise disabled')
+            try:
+                self.Notices.delete('setup')
+            except Exception:
+                pass
+            # Keep HAP running for an already-paired Apple Home; stop when unpaired.
+            if not self.persist_is_paired():
+                self.stop_bridge()
+            elif self.bridge is not None and self.bridge.running:
+                self.setDriver('ST', 2 if self.bridge.is_paired() else 1)
 
     def set_err(self, code: int) -> None:
         self.setDriver('ERR', int(code), uom=25)
@@ -280,6 +377,16 @@ class Controller(Node):
             return False
 
         self.setDriver('GV0', len(self.exported_devices))
+
+        if not self._should_run_hap():
+            self.stop_bridge()
+            LOGGER.info(
+                'HomeKit HAP idle (%d devices ready). Set Advertise On to pair with Apple Home.',
+                len(self.exported_devices),
+            )
+            self.set_err(ERR_OK)
+            return True
+
         self.stop_bridge()
         _CONFIG_DIR.mkdir(parents=True, exist_ok=True)
         try:
@@ -305,16 +412,38 @@ class Controller(Node):
             return
         self.setDriver('ST', 2 if self.bridge.is_paired() else 1)
 
+    def query(self, _cmd=None) -> None:
+        self.reportDrivers()
+
     def cmd_refresh(self, _cmd=None) -> None:
         self.refresh_bridge(force=True)
 
     def cmd_show_setup(self, _cmd=None) -> None:
         if self.bridge is None or self.bridge.driver is None:
-            self.Notices.send('setup', 'Bridge is not running. Run REFRESH first.')
+            if self.get_advertise() != 1:
+                self.Notices.send(
+                    'setup',
+                    'HomeKit is not advertising. Set Advertise On, then try Show HomeKit Setup again.',
+                )
+                return
+            self.Notices.send('setup', 'Bridge is not running yet. Wait a moment or run Refresh Devices.')
             return
-        self.bridge.setup_message()
-        pin = self.bridge.driver.state.pincode.decode()
-        self.Notices.send('setup', f'HomeKit setup code: {pin} (also printed in the node server log)')
+        # Also print ASCII QR / PIN to the node server log (HAP-python).
+        try:
+            self.bridge.setup_message()
+        except Exception:
+            LOGGER.exception('HAP setup_message failed')
+
+        details = build_setup_details(self.bridge)
+        if details is None:
+            self.Notices.send('setup', 'Unable to read HomeKit setup details from the running bridge.')
+            return
+
+        LOGGER.info(format_setup_log_message(details))
+        self.Notices.send('setup', format_setup_notice_html(details))
+
+    def cmd_set_advertise(self, command) -> None:
+        self.set_advertise(int(command.get('value')))
 
     def heartbeat(self, inc: int = 1) -> None:
         self.hb += inc
@@ -322,3 +451,12 @@ class Controller(Node):
             self.reportCmd('DON')
         else:
             self.reportCmd('DOF')
+
+    drivers = [
+        {'driver': 'ST', 'value': 0, 'uom': 25},
+        {'driver': 'GV0', 'value': 0, 'uom': 56},
+        {'driver': 'GV1', 'value': 0, 'uom': 2},
+        {'driver': 'GV2', 'value': 0, 'uom': 2},
+        {'driver': 'ERR', 'value': 0, 'uom': 25},
+    ]
+    id = 'controller'

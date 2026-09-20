@@ -5,9 +5,11 @@ ND-controller-ICON = GenericCtl
 CMD-ctl-QUERY-NAME = Query
 CMD-ctl-REFRESH-NAME = Refresh Devices
 CMD-ctl-SHOW_SETUP-NAME = Show HomeKit Setup
+CMD-ctl-SET_ADVERTISE-NAME = Advertise
 
 ST-ctl-GV0-NAME = Exported Device Count
 ST-ctl-GV1-NAME = IoX Connected
+ST-ctl-GV2-NAME = Advertise
 ST-ctl-ERR-NAME = Error
 
 CST-0 = Stopped
