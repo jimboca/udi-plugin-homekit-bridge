@@ -10,6 +10,19 @@ This node server can expose selected IoX devices to **Apple Home**. It does **no
 
 IoX credentials are provided by Plugins through `udi_interface.ISY` — you do not enter IoX host/user/password here.
 
+## Quick start
+
+1. Choose which devices to export, then **Save**.
+   - The default `export_mode` is `spoken`. Only devices with a Spoken note are exported. On each of those devices, open **Notes** and set **Spoken** to `1` (use the IoX name) or to the name you want in Apple Home.
+   - Set `export_mode` to `all` to export every device that maps to a HomeKit type. With `all`, `mapping_mode` decides the type: leave it at `common` (lights, switches, fans, thermostats, contact and motion sensors, garage doors), or set `broad` to also include locks, blinds, and extra sensors. Large systems can hit the HomeKit limit of about 150 accessories.
+   - `hybrid` exports Spoken devices plus any devices you add or remove in the **Exported devices** table.
+2. On the bridge controller, run **Refresh Devices**, or **Restart** the node server from the Plugins dashboard. **Exported Device Count** should be greater than 0, and **IoX Connected** should be On. Reload this Configuration page and check the **Exported devices** table at the bottom to see what will be sent to Apple Home.
+3. Set **Advertise** to On, or click **Discover** in Plugins. This opens a pairing window for 5 minutes.
+4. Run **Show HomeKit Setup** and use the setup code or QR in the Apple Home app: **Add Accessory**.
+5. When the window ends, **Advertise** turns Off. A paired bridge keeps running so Apple Home and Siri still work.
+
+The node server must run as **polyglot**. Otherwise Apple Home cannot see the bridge. See **Apple Home pairing** below.
+
 ## Custom parameters
 
 Unless you change them on the Configuration page, the plugin uses these defaults:
