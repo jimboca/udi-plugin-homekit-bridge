@@ -8,6 +8,7 @@ from const import (
     HAP_TYPE_BLIND,
     HAP_TYPE_CONTACT,
     HAP_TYPE_FAN,
+    HAP_TYPE_GARAGE,
     HAP_TYPE_HUMIDITY_SENSOR,
     HAP_TYPE_LIGHT,
     HAP_TYPE_LOCK,
@@ -18,6 +19,7 @@ from const import (
 )
 from homekit_bridge.accessories.broad import (
     ISYBlindAccessory,
+    ISYGarageDoorAccessory,
     ISYHumiditySensorAccessory,
     ISYLockAccessory,
     ISYTemperatureSensorAccessory,
@@ -40,6 +42,7 @@ _REGISTRY: dict[str, Type] = {
     HAP_TYPE_MOTION: ISYMotionAccessory,
     HAP_TYPE_LOCK: ISYLockAccessory,
     HAP_TYPE_BLIND: ISYBlindAccessory,
+    HAP_TYPE_GARAGE: ISYGarageDoorAccessory,
     HAP_TYPE_TEMP_SENSOR: ISYTemperatureSensorAccessory,
     HAP_TYPE_HUMIDITY_SENSOR: ISYHumiditySensorAccessory,
 }

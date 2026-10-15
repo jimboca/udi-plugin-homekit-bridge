@@ -129,7 +129,10 @@ def format_setup_notice_html(details: HomeKitSetupDetails) -> str:
         '<p><b>Apple Home:</b> scan the QR code above, or Home app → <b>+</b> → <b>Add Accessory</b> → '
         'enter the setup code.</p>'
         '<p>Phone must be on the <b>same Wi‑Fi / LAN</b> as the eISY. '
-        '<b>Advertise</b> must be On (timed window) for discovery.</p>'
+        '<b>Advertise</b> must be On (timed window) for discovery. '
+        'Apple Home finds the bridge by multicast on UDP port 5353, which works when '
+        'this node server runs as <b>polyglot</b>. '
+        'The mDNS notice says whether this bridge showed up on the local network.</p>'
         '<p>Run <b>Show HomeKit Setup</b> on the controller node to refresh these details.</p>'
     )
 

@@ -25,6 +25,7 @@ CATEGORY_BY_HAP_TYPE = {
     'motion': 10,
     'lock': 6,
     'blind': 14,
+    'garage': 4,  # CATEGORY_GARAGE_DOOR_OPENER
     'temp_sensor': 10,
     'humidity_sensor': 10,
 }
@@ -50,6 +51,11 @@ class ISYAccessoryBase(Accessory):
         )
         self._status_handler = None
         self._subscribe_isy()
+
+    def _set_char(self, service: Any, name: str, value: Any, notify: bool = True) -> None:
+        """Set a HAP characteristic (HAP-python 5 has no configure_char notify=)."""
+        char = service.get_characteristic(name)
+        char.set_value(value, should_notify=notify)
 
     def _subscribe_isy(self) -> None:
         node = self.exported.node

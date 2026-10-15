@@ -1,6 +1,7 @@
 # Plugins Node Server runtime (install on the Plugins host).
-# Requires Python 3.10+. PyISY comes transitively via udi_interface.
+# Requires Python 3.10+.
 udi_interface>=3.0.31
+pyisy>=2.1.4,<3.0.0
 HAP-python[QRCode]>=5.0
 zeroconf>=0.132.2
 markdown2

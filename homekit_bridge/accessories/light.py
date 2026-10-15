@@ -12,7 +12,6 @@ class ISYLightAccessory(ISYAccessoryBase):
         super().__init__(driver, device, on_isy_change=on_isy_change)
         chars = ['Brightness'] if device.traits.dimmable else None
         serv = self.add_preload_service('Lightbulb', chars=chars)
-        serv.configure_char('Name', value=device.display_name)
         serv.setter_callback = self._set_chars
         self._light = serv
         self.sync_from_isy(notify=False)
@@ -25,6 +24,6 @@ class ISYLightAccessory(ISYAccessoryBase):
 
     def sync_from_isy(self, notify: bool = True) -> None:
         on = self.isy_is_on()
-        self._light.configure_char('On', value=on, notify=notify)
+        self._set_char(self._light, 'On', on, notify=notify)
         if self.exported.traits.dimmable:
-            self._light.configure_char('Brightness', value=self.isy_brightness_hap(), notify=notify)
+            self._set_char(self._light, 'Brightness', self.isy_brightness_hap(), notify=notify)

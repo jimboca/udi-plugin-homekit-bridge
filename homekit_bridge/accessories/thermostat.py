@@ -11,7 +11,6 @@ class ISYThermostatAccessory(ISYAccessoryBase):
     def __init__(self, driver: Any, device, on_isy_change=None) -> None:
         super().__init__(driver, device, on_isy_change=on_isy_change)
         serv = self.add_preload_service('Thermostat')
-        serv.configure_char('Name', value=device.display_name)
         serv.setter_callback = self._set_chars
         self._thermostat = serv
         self.sync_from_isy(notify=False)
@@ -42,8 +41,9 @@ class ISYThermostatAccessory(ISYAccessoryBase):
         target = self._node_value('status', current)
         if target > 120:
             target = target / 2.0
-        self._thermostat.configure_char('CurrentTemperature', value=current, notify=notify)
-        self._thermostat.configure_char('TargetTemperature', value=target, notify=notify)
-        self._thermostat.configure_char('CurrentHeatingCoolingState', value=1 if current < target else 0, notify=notify)
-        self._thermostat.configure_char('TargetHeatingCoolingState', value=1, notify=notify)
-        self._thermostat.configure_char('TemperatureDisplayUnits', value=0, notify=notify)
+        t = self._thermostat
+        self._set_char(t, 'CurrentTemperature', current, notify=notify)
+        self._set_char(t, 'TargetTemperature', target, notify=notify)
+        self._set_char(t, 'CurrentHeatingCoolingState', 1 if current < target else 0, notify=notify)
+        self._set_char(t, 'TargetHeatingCoolingState', 1, notify=notify)
+        self._set_char(t, 'TemperatureDisplayUnits', 0, notify=notify)

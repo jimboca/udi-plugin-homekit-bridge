@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import ipaddress
 import logging
 import random
 import re
 import threading
-from typing import Any, Callable, Dict, List, Optional
+import time
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from pyhap.accessory import Bridge
 from pyhap.accessory_driver import AccessoryDriver
@@ -16,12 +18,33 @@ from homekit_bridge.isy_scanner import ExportedDevice
 
 LOGGER = logging.getLogger(__name__)
 
+_HAP_START_TIMEOUT_SEC = 8.0
+
 
 def _normalize_pin(pin: str) -> bytes:
     digits = re.sub(r'\D', '', pin or '')
     if len(digits) != 8:
         digits = ''.join(str(random.randint(0, 9)) for _ in range(8))
     return f'{digits[0:3]}-{digits[3:5]}-{digits[5:8]}'.encode('ascii')
+
+
+def resolve_advertise_ip(value: Union[str, dict, None]) -> str:
+    """Return a dotted IPv4 string, or '' if missing/invalid.
+
+    `udi_interface.get_network_interface('default')` returns a dict with `addr`,
+    not a string — passing that dict to HAP-python makes create_server fail with
+    ``gaierror: Name does not resolve`` and the bridge never advertises.
+    """
+    if isinstance(value, dict):
+        value = value.get('addr')
+    ip = str(value or '').strip()
+    if not ip or ip.lower() in ('false', 'none', '0.0.0.0'):
+        return ''
+    try:
+        return str(ipaddress.IPv4Address(ip))
+    except (ipaddress.AddressValueError, ValueError):
+        LOGGER.warning('Ignoring invalid advertise_ip %r (need dotted IPv4)', ip)
+        return ''
 
 
 class IsyHomeKitBridge:
@@ -85,15 +108,24 @@ class IsyHomeKitBridge:
         with self._lock:
             if self._running:
                 self.stop()
+            bind_ip = resolve_advertise_ip(self.advertise_ip)
+            self.advertise_ip = bind_ip
             pincode = _normalize_pin(self.hap_pin)
             driver_kwargs: Dict[str, Any] = {
                 'port': int(self.hap_port),
                 'persist_file': self.persist_file,
                 'pincode': pincode,
             }
-            if self.advertise_ip:
-                driver_kwargs['address'] = self.advertise_ip
-                driver_kwargs['advertised_address'] = self.advertise_ip
+            # Bind + advertise on a real IPv4 only. Leaving address unset lets
+            # HAP-python pick via util.get_local_address().
+            # mDNS uses stock multicast AsyncZeroconf (UDP 5353). On this eISY
+            # mDNSResponderPosix runs as polyglot: Zeroconf() as polyglot
+            # succeeds, and as eisyui it raises OSError 48. The node server
+            # must run as polyglot. Do not force unicast.
+            if bind_ip:
+                driver_kwargs['address'] = bind_ip
+                driver_kwargs['listen_address'] = bind_ip
+                driver_kwargs['advertised_address'] = bind_ip
             self._driver = AccessoryDriver(**driver_kwargs)
             bridge = Bridge(self._driver, self.bridge_name)
             self._accessories = {}
@@ -114,13 +146,38 @@ class IsyHomeKitBridge:
 
             self._thread = threading.Thread(target=_run, name='homekit-bridge-hap', daemon=True)
             self._thread.start()
+            if not self._wait_until_ready(_HAP_START_TIMEOUT_SEC):
+                err = (
+                    f'HAP failed to listen/advertise on {bind_ip or "(auto)"}:{self.hap_port} '
+                    f'within {_HAP_START_TIMEOUT_SEC:.0f}s '
+                    f'(UDP 5353 — run NS as polyglot to share mDNS with the system responder)'
+                )
+                LOGGER.error(err)
+                self.stop()
+                raise RuntimeError(err)
             LOGGER.info(
-                'HomeKit bridge started on port %s (%d accessories)',
+                'HomeKit bridge listening on %s:%s (%d accessories, mDNS registered)',
+                bind_ip or getattr(self._driver.state, 'address', 'auto'),
                 self.hap_port,
                 len(devices),
             )
             if self.on_paired_change:
                 self.on_paired_change(self.is_paired())
+
+    def _wait_until_ready(self, timeout: float) -> bool:
+        """True once HAP TCP is bound and mDNS service info is registered."""
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            driver = self._driver
+            thread = self._thread
+            if thread is not None and not thread.is_alive() and not self._running:
+                return False
+            server = getattr(getattr(driver, 'http_server', None), 'server', None)
+            mdns = getattr(driver, 'mdns_service_info', None)
+            if server is not None and mdns is not None:
+                return True
+            time.sleep(0.05)
+        return False
 
     def stop(self) -> None:
         with self._lock:

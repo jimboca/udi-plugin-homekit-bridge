@@ -12,6 +12,7 @@ from const import (
     HAP_TYPE_BLIND,
     HAP_TYPE_CONTACT,
     HAP_TYPE_FAN,
+    HAP_TYPE_GARAGE,
     HAP_TYPE_HUMIDITY_SENSOR,
     HAP_TYPE_LIGHT,
     HAP_TYPE_LOCK,
@@ -52,6 +53,10 @@ LOCK_NODE_DEFS = {
 BLIND_NODE_DEFS = {
     'WindowCovering',
     'WindowShade',
+}
+# Konnected (udi-plugin-konnected) and other GDO nodeDefs.
+GARAGE_NODE_DEFS = {
+    'gdo',
 }
 
 
@@ -98,6 +103,18 @@ def classify_node(
 
     node_def = _node_def_id(node)
     name_blob = _name_blob(node)
+    address = str(getattr(node, 'address', '') or '').lower()
+
+    # Garage before contact: name tokens like "garage door" contain "door".
+    # Konnected GDO is nodeDef gdo; child light is gdolt (do not treat as GDO).
+    if node_def in GARAGE_NODE_DEFS or (
+        address.startswith('gdo')
+        and not address.endswith('lt')
+        and node_def != 'gdolt'
+    ):
+        return HAP_TYPE_GARAGE
+    if 'garage door' in name_blob or 'garagedoor' in name_blob:
+        return HAP_TYPE_GARAGE
 
     if node_def in THERMOSTAT_NODE_DEFS or 'thermostat' in name_blob:
         return HAP_TYPE_THERMOSTAT

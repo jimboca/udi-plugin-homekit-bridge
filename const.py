@@ -21,6 +21,7 @@ HAP_TYPE_CONTACT = 'contact'
 HAP_TYPE_MOTION = 'motion'
 HAP_TYPE_LOCK = 'lock'
 HAP_TYPE_BLIND = 'blind'
+HAP_TYPE_GARAGE = 'garage'
 HAP_TYPE_TEMP_SENSOR = 'temp_sensor'
 HAP_TYPE_HUMIDITY_SENSOR = 'humidity_sensor'
 

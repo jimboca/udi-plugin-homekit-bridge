@@ -24,13 +24,15 @@ Unless you change them on the Configuration page, the plugin uses these defaults
 | `advertise_ip` | *(empty / auto)* | LAN IP advertised over mDNS |
 | `advertise_timeout` | `5` | Minutes **Advertise** stays On |
 
-After changing any of these (except `advertise_timeout`), run **Refresh Devices** or restart the node server so the bridge rebuilds.
+After changing any of these (except `advertise_timeout`), **Save** — the bridge rescans and rebuilds automatically. You can still run **Refresh Devices** anytime.
 
 ### `export_mode`
 
 **What it is for:** Controls *which* IoX nodes become HomeKit accessories. HomeKit bridges are limited to about **150** accessories, so prefer an explicit selection on large systems.
 
-**How to use it:** Set `export_mode` to one of the values below, **Save**, then **Refresh Devices**. Watch **Exported Device Count** (`GV0`) to confirm the result.
+**How to use it:** Set `export_mode` to one of the values below and **Save**. The plugin refreshes the device list immediately (watch **Exported Device Count** / `GV0`). You can also run **Refresh Devices**.
+
+**Seeing what will be exported:** After **Refresh Devices**, open this node server’s **Configuration** page and scroll to the bottom of the help panel. The read-only **Exported devices** table lists every device the bridge will send to Apple Home (address, HomeKit name, HAP type, AID, Spoken, and any typed override). Reload the Configuration page if the table looks stale.
 
 Default: **`spoken`**.
 
@@ -88,6 +90,7 @@ Maps everyday home devices:
 - Fans
 - Thermostats
 - Contact (door/window) and motion sensors
+- Garage door openers (Konnected `gdo` nodeDef, or name containing “garage door”)
 
 Unrecognized on/off nodes usually become a **switch**. Prefer this unless you need the extra types below.
 
@@ -153,12 +156,14 @@ The phone and any Home hub must be able to reach this IP.
 
 **How to use it:** Add a row per device. Identify the node with address (`2E AD 73 1`) or exact IoX name. Reload the full Configuration page after **Discover** / saves if rows do not appear immediately.
 
+Below the configuration help text, a separate **Exported devices (read-only)** table lists what the bridge will actually send to Apple Home after the latest scan (address, HomeKit name, HAP type, AID, Spoken, override). That table is informational only — edit Spoken notes or this typed table to change membership, then **Refresh Devices**.
+
 | Column | Description |
 |--------|-------------|
 | `node_address` | IoX node address or name |
 | `action` | `include`, `exclude`, or `rename` (see below) |
 | `homekit_name` | Optional display name in Apple Home |
-| `hap_type` | Optional forced type: `light`, `switch`, `fan`, `thermostat`, `contact`, `motion`, `lock`, `blind` |
+| `hap_type` | Optional forced type: `light`, `switch`, `fan`, `thermostat`, `contact`, `motion`, `lock`, `blind`, `garage` |
 
 #### Actions
 
@@ -170,7 +175,7 @@ The phone and any Home hub must be able to reach this IP.
 
 **`homekit_name` tip:** On an `include` row, `homekit_name` also sets the Apple Home display name when present. For Spoken-selected devices you want to keep exporting, use `rename` plus `homekit_name` instead of changing the Spoken note.
 
-**`hap_type` tip:** Optional on any row. Forces the HomeKit accessory type when auto-mapping is wrong (for example treat a dimmer as `light`).
+**`hap_type` tip:** Optional on any row. Forces the HomeKit accessory type when auto-mapping is wrong (for example treat a dimmer as `light`, or force `garage` for a GDO that was not auto-detected). Konnected garage doors (`nodeDef` `gdo`) map to `garage` automatically in `common` mode; use `hap_type=garage` only when you need an override.
 
 ## Apple Home pairing
 
@@ -181,6 +186,8 @@ HomeKit discovery/pairing is **off by default**.
 3. Send **Show HomeKit Setup** (or open the **HomeKit pairing** Plugins Notice) for the setup code and scannable QR.
 4. In the Apple Home app: **Add Accessory** → scan the QR, or enter the setup code.
 5. When the Advertise window ends, **Advertise** returns to **Off**. If the bridge is **not** yet paired, HAP/mDNS stops. If it **is** paired, the bridge stays running so Apple Home / Siri keep working.
+
+**Advertise** still needs HomeKit’s own multicast on UDP port 5353. On eISY that works only when this node server runs as **polyglot** (the same user as the system mDNS responder). Running as **eisyui** fails with `Errno 48` (address already in use) and Apple Home will not see the bridge. Plugins browses `_hap._tcp` and reports what the local network is already advertising. After the bridge starts, and again from **Show HomeKit Setup**, a Plugins notice says whether this bridge’s name and port showed up. That check takes about 10 seconds.
 
 **Note:** HomeKit bridges support up to about **150** accessories. Use `hybrid` mode with explicit includes for large installations.
 
@@ -197,7 +204,7 @@ HomeKit discovery/pairing is **off by default**.
 | Command | Action |
 |---------|--------|
 | `REFRESH` | Rescan IoX and (re)start the bridge only if Advertise is On or already paired |
-| `SHOW_SETUP` | Publish HomeKit pairing Notice with QR + setup code (also logs ASCII QR) |
+| `SHOW_SETUP` | Publish HomeKit pairing Notice with QR + setup code (also logs ASCII QR) and refresh the mDNS visibility notice |
 | `SET_ADVERTISE` | Turn **Advertise** On/Off (On starts a timed pairing window) |
 | **Discover** (Plugins UI) | Same as setting **Advertise** On |
 
@@ -216,7 +223,7 @@ For scenes, prefer setting Spoken on the scene controller you want to track (sam
 |-------|-----|
 | `ERR` = IoX access not authorized | Enable unrestricted IoX access and restart |
 | No devices exported | Check Spoken notes or switch to `hybrid`/`all` |
-| Home app cannot find bridge | Set **Advertise** On, confirm it has not timed out, verify `hap_port` / `advertise_ip` |
+| Home app cannot find bridge | Set **Advertise** On, confirm it has not timed out, verify `hap_port` / `advertise_ip`. Read the mDNS notice: if this bridge was not seen, the node server is not running as **polyglot** and could not share UDP port 5353 |
 | Devices changed IDs in HomeKit | Do not delete `config/bridge_state.json` or `config/accessory.state` |
 
 ## Related plugins

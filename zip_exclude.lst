@@ -8,6 +8,7 @@ zip_exclude.lst
 *.key
 *.pid
 *.log
+plan.md
 *.lock
 .git/*
 .pytest_cache/*
