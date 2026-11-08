@@ -128,7 +128,7 @@ class Controller(Node):
                         },
                         {
                             'name': 'hap_type',
-                            'title': 'Forced HAP type (light, switch, fan, thermostat, contact, motion, lock, blind, garage)',
+                            'title': 'Forced HAP type (light, switch, outlet, valve, fan, thermostat, contact, motion, lock, blind, garage)',
                             'isRequired': False,
                         },
                     ],

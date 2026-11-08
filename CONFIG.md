@@ -90,7 +90,7 @@ Use for small systems or first-time exploration. On large IoX trees this can hit
 
 **What it is for:** Controls *how* an exported IoX node is classified as a HomeKit accessory (light, switch, thermostat, etc.). It does not choose *which* nodes export; `export_mode` does that.
 
-**How to use it:** Start with `common`. Switch to `broad` only if you need locks, blinds, standalone temp/humidity sensors, or more Plugins node-server devices. You can override a single device with `hap_type` in the typed table without changing the global mode.
+**How to use it:** Start with `common`. The type comes from a table of known IoX nodeDefs (`homekit_bridge/nodedef_map.py`), then from the node's capabilities (dimmable, lock, thermostat, climate drivers). The node name is not used. Switch to `broad` only for standalone temperature or humidity sensors. Override one device with `hap_type` in the typed table when the table is wrong.
 
 Default: **`common`**.
 
@@ -98,25 +98,31 @@ Default: **`common`**.
 
 Maps everyday home devices:
 
-- Lights (including dimmers and many scenes)
-- Switches / outlets
+- Lights, including dimmers, scenes, and Kasa color bulbs or light strips (hue, saturation, and color temperature when that nodeDef has them)
+- Switches and relays. Kasa plugs, each socket on a power strip, and Insteon OutletLinc use the HomeKit **Outlet** service. The strip itself (`SmartStrip HS300`) is a switch: HomeKit has no power-strip type, and that node's on/off switches every socket. Its status is on when any socket is on
 - Fans
-- Thermostats
-- Contact (door/window) and motion sensors
-- Garage door openers (Konnected `gdo` nodeDef, or name containing “garage door”)
+- Thermostats, including Ecobee nodeDefs
+- Contact and motion sensors. Camect detection nodes and a Camect camera are motion sensors
+- Door locks and window coverings, when the nodeDef is one of the known lock or shade types
+- Garage door openers (Konnected nodeDef `gdo`). The garage light (`gdolt`) stays a light. A switch named "garage door" stays a switch unless you set `hap_type=garage`
+- Moen Flo shutoff (`modev`) as a HomeKit valve. Open and closed are on and off. Apple Home shows a valve; the hub still uses the switch node
 
-Unrecognized on/off nodes usually become a **switch**. Prefer this unless you need the extra types below.
+An Insteon, Z-Wave, or Zigbee node that is not in the table is still classified from its capabilities (dimmable load, lock, thermostat, or plain on/off). A Plugins node server device that is not in the table is left out. Node server controllers, the Kasa hub, and Kasa cameras are left out.
+
+Each refresh writes one `HomeKit device` line per node to `logs/debug.log`. The line has the address, name, nodeDef, protocol, status, every driver value, the HomeKit type (`class`), why that type was chosen (`via` is `nodedef`, `capability`, `forced`, `excluded`, `nodedef-skip`, `air-quality`, or `unmapped`), and whether it was exported. Use that line when a new device needs a nodeDef entry.
+
+These are not exported, including when `export_mode` is `all`:
+
+- HomeKit Hub nodes (`HKHub` node types) and a node whose name ends with `(Pairing)`. Those are the hub's copy of this bridge, which otherwise shows up as **IoX Bridge 5E6BDE Light** and **IoX Bridge 5E6BDE (Pairing)**.
+- **Auto DR** (address `ADR…`). That is an IoX system scene, not a dimmer.
 
 #### `broad`
 
 Everything in `common`, plus:
 
-- Door locks
-- Blinds / shades / window coverings
-- Temperature-only and humidity sensors
-- Additional Plugins node-server devices when the name/nodeDef looks like a sensor
+- A node whose drivers include **CLITEMP** (temperature) or **CLIHUM** (humidity) and that is not already a thermostat
 
-More devices appear in Apple Home, but mis-classification is more likely (for example a oddly named node becoming a lock). Fix individual mistakes with a typed row `hap_type`.
+A node that also reports CO2, VOC, or barometric pressure is an air-quality sensor. That HomeKit type is not advertised yet, so the node is left out instead of being called a temperature sensor. Fix a single miss with a typed row `hap_type`.
 
 ### `hap_port`
 
@@ -176,7 +182,7 @@ Below the configuration help text, a separate **Exported devices (read-only)** t
 | `node_address` | IoX node address or name |
 | `action` | `include`, `exclude`, or `rename` (see below) |
 | `homekit_name` | Optional display name in Apple Home |
-| `hap_type` | Optional forced type: `light`, `switch`, `fan`, `thermostat`, `contact`, `motion`, `lock`, `blind`, `garage` |
+| `hap_type` | Optional forced type: `light`, `switch`, `outlet`, `valve`, `fan`, `thermostat`, `contact`, `motion`, `lock`, `blind`, `garage` |
 
 #### Actions
 
@@ -188,7 +194,7 @@ Below the configuration help text, a separate **Exported devices (read-only)** t
 
 **`homekit_name` tip:** On an `include` row, `homekit_name` also sets the Apple Home display name when present. For Spoken-selected devices you want to keep exporting, use `rename` plus `homekit_name` instead of changing the Spoken note.
 
-**`hap_type` tip:** Optional on any row. Forces the HomeKit accessory type when auto-mapping is wrong (for example treat a dimmer as `light`, or force `garage` for a GDO that was not auto-detected). Konnected garage doors (`nodeDef` `gdo`) map to `garage` automatically in `common` mode; use `hap_type=garage` only when you need an override.
+**`hap_type` tip:** Optional on any row. Forces the HomeKit accessory type when the nodeDef table has no entry or the wrong one (for example `hap_type=garage` on a relay that is actually a door, or `hap_type=light` on an on/off relay that controls a lamp). Konnected `gdo` maps to `garage` on its own.
 
 ## Apple Home pairing
 

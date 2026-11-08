@@ -13,6 +13,8 @@ from const import (
     HAP_TYPE_LIGHT,
     HAP_TYPE_LOCK,
     HAP_TYPE_MOTION,
+    HAP_TYPE_OUTLET,
+    HAP_TYPE_VALVE,
     HAP_TYPE_SWITCH,
     HAP_TYPE_TEMP_SENSOR,
     HAP_TYPE_THERMOSTAT,
@@ -27,7 +29,11 @@ from homekit_bridge.accessories.broad import (
 from homekit_bridge.accessories.fan import ISYFanAccessory
 from homekit_bridge.accessories.light import ISYLightAccessory
 from homekit_bridge.accessories.sensor import ISYContactAccessory, ISYMotionAccessory
-from homekit_bridge.accessories.switch import ISYSwitchAccessory
+from homekit_bridge.accessories.switch import (
+    ISYOutletAccessory,
+    ISYSwitchAccessory,
+    ISYValveAccessory,
+)
 from homekit_bridge.accessories.thermostat import ISYThermostatAccessory
 from homekit_bridge.isy_scanner import ExportedDevice
 
@@ -36,6 +42,8 @@ AccessoryFactory = Callable[[Any, ExportedDevice, Optional[Callable[[str], None]
 _REGISTRY: dict[str, Type] = {
     HAP_TYPE_LIGHT: ISYLightAccessory,
     HAP_TYPE_SWITCH: ISYSwitchAccessory,
+    HAP_TYPE_OUTLET: ISYOutletAccessory,
+    HAP_TYPE_VALVE: ISYValveAccessory,
     HAP_TYPE_FAN: ISYFanAccessory,
     HAP_TYPE_THERMOSTAT: ISYThermostatAccessory,
     HAP_TYPE_CONTACT: ISYContactAccessory,

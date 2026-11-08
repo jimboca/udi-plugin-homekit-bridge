@@ -19,7 +19,9 @@ LOGGER = logging.getLogger(__name__)
 CATEGORY_BY_HAP_TYPE = {
     'light': 5,
     'switch': 8,
-    'fan': 7,
+    'outlet': 7,  # CATEGORY_OUTLET
+    'valve': 29,  # CATEGORY_FAUCET
+    'fan': 3,
     'thermostat': 9,
     'contact': 10,
     'motion': 10,

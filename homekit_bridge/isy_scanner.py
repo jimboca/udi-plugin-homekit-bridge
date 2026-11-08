@@ -13,7 +13,7 @@ from const import (
     MAPPING_MODE_COMMON,
     MAX_BRIDGE_ACCESSORIES,
 )
-from homekit_bridge.mapping import classify_node, node_traits
+from homekit_bridge.mapping import classify_node, explain_classification, format_node_debug, node_traits
 from homekit_bridge.state_store import BridgeStateStore
 
 LOGGER = logging.getLogger(__name__)
@@ -215,4 +215,34 @@ def scan_export_devices(
 
     state_store.prune_missing([d.address for d in devices])
     state_store.save()
+    _log_device_list(pyisy, devices, mapping_mode, typed_by_address)
     return devices
+
+
+def _log_device_list(
+    pyisy: Any,
+    devices: List[ExportedDevice],
+    mapping_mode: str,
+    typed_by_address: Dict[str, Dict[str, str]],
+) -> None:
+    """Debug line per node so a new device can be mapped from the log."""
+    exported = {device.address for device in devices}
+    LOGGER.info('HomeKit device list: %d exported', len(devices))
+    nodes = getattr(pyisy, 'nodes', None)
+    if nodes is None:
+        return
+    for _, child in nodes:
+        if type(child).__name__ not in ('Node', 'Group'):
+            continue
+        row = typed_by_address.get(str(child.address).lower()) or typed_by_address.get(str(child.name).lower())
+        forced = (row or {}).get('hap_type') or None
+        hap_type, via = explain_classification(child, mapping_mode=mapping_mode, forced_hap_type=forced)
+        LOGGER.debug(
+            '%s',
+            format_node_debug(
+                child,
+                hap_type=hap_type,
+                via=via,
+                exported=child.address in exported,
+            ),
+        )

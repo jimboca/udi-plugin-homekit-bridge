@@ -15,7 +15,14 @@ from homekit_bridge.garage_door import (
     iox_to_hap_target,
 )
 from homekit_bridge.isy_scanner import scan_export_devices
-from homekit_bridge.mapping import classify_node, is_kpl_sub_button
+from homekit_bridge.color import hap_sat_to_kasa, kasa_sat_to_hap, kelvin_to_mired, light_optional_chars
+from homekit_bridge.mapping import (
+    classify_node,
+    explain_classification,
+    format_node_debug,
+    is_kpl_sub_button,
+    node_traits,
+)
 from homekit_bridge.state_store import BridgeStateStore
 
 
@@ -35,6 +42,9 @@ class FakeNode:
         protocol=None,
         node_def_id='RelayLampSwitch_ADV',
         status=0,
+        aux_properties=None,
+        is_lock=False,
+        is_thermostat=False,
     ):
         self.address = address
         self.name = name
@@ -43,6 +53,9 @@ class FakeNode:
         self.protocol = protocol
         self.node_def_id = node_def_id
         self.status = status
+        self.aux_properties = aux_properties or {}
+        self.is_lock = is_lock
+        self.is_thermostat = is_thermostat
         self.status_events = _EventStub()
 
     def get_groups(self, responder=False):
@@ -111,10 +124,14 @@ class MappingTests(unittest.TestCase):
         self.assertFalse(is_kpl_sub_button('2E AD 73 1'))
 
     def test_classify_light_and_switch(self):
-        dim = FakeNode('a1', 'Lamp', dimmable=True)
-        sw = FakeNode('a2', 'Outlet', dimmable=False, node_def_id='OutletLincOnOff')
+        dim = FakeNode('a1', 'Lamp', node_def_id='DimmerLampSwitch_ADV')
+        plug = FakeNode('a2', 'Bersaglio eisy', node_def_id='OutletLincOnOff')
+        sw = FakeNode('a3', 'Hall Switch', node_def_id='RelayLampSwitch_ADV')
+        named_plug = FakeNode('a4', 'Plug 3', node_def_id='RelayLampSwitch_ADV')
         self.assertEqual(classify_node(dim), 'light')
+        self.assertEqual(classify_node(plug), 'outlet')
         self.assertEqual(classify_node(sw), 'switch')
+        self.assertEqual(classify_node(named_plug), 'switch')
 
     def test_classify_motion(self):
         motion = FakeNode('m1', 'Hall Motion', node_def_id='MotionSensor_ADV')
@@ -126,13 +143,111 @@ class MappingTests(unittest.TestCase):
         named = FakeNode('n001_xyz', 'Main Garage Door', node_def_id='RelayLampSwitch_ADV')
         plain = FakeNode('11 22 33 1', 'Garage', node_def_id='OutletLincOnOff')
         self.assertEqual(classify_node(gdo), 'garage')
-        self.assertEqual(classify_node(light), 'light')  # gdolt / "Garage Light"
-        self.assertEqual(classify_node(named), 'garage')
-        self.assertEqual(classify_node(plain), 'switch')  # plain "Garage" is not a GDO
+        self.assertEqual(classify_node(light), 'light')
+        self.assertEqual(classify_node(named), 'switch')
+        self.assertEqual(classify_node(plain), 'outlet')
+
+    def test_doorbell_and_outdoor_are_not_contacts(self):
+        outdoor = FakeNode('n1', 'Outdoor Light', node_def_id='RelayLampSwitch_ADV')
+        camera = FakeNode('n006_01_001', 'Doorbell', node_def_id='camera')
+        human = FakeNode('n006_01_001_human', 'Doorbell human', node_def_id='human')
+        door = FakeNode('d1', 'Front Door', node_def_id='DoorSensor_ADV')
+        named_door = FakeNode('d2', 'Front Door', node_def_id='RelayLampSwitch_ADV')
+        self.assertEqual(classify_node(outdoor), 'switch')
+        self.assertEqual(classify_node(camera), 'motion')
+        self.assertEqual(classify_node(human), 'motion')
+        self.assertEqual(classify_node(door), 'contact')
+        self.assertEqual(classify_node(named_door), 'switch')
+        self.assertTrue(node_traits(camera).motion_from_alarm)
+
+    def test_system_nodes_are_not_exported_in_all_mode(self):
+        auto_dr = FakeNode('ADR0001', 'Auto DR', dimmable=True, node_def_id='InsteonDimmer')
+        eisy = FakeNode('n003_plug', 'Bersaglio eisy', node_def_id='SmartStripPlug_E')
+        pairing = FakeNode('n002_hkp_a', 'IoX Bridge 5E6BDE (Pairing)', node_def_id='RelayLampSwitch_ADV')
+        plug = FakeNode('n003_plug3', 'Plug 3', node_def_id='SmartStripPlug_E')
+        self.assertIsNone(classify_node(auto_dr, strict=True))
+        strip = FakeNode('n003_6c5ab06d8c16', 'SmartStrip HS300', node_def_id='SmartStrip_E')
+        self.assertEqual(classify_node(strip, strict=True), 'switch')
+        self.assertEqual(classify_node(eisy, strict=True), 'outlet')
+        self.assertIsNone(classify_node(pairing, strict=True))
+        self.assertEqual(classify_node(plug, strict=True), 'outlet')
+
+    def test_homekit_hub_nodes_are_not_exported(self):
+        mirrored = FakeNode(
+            'n002_g1a499ced623a9',
+            'IoX Bridge 5E6BDE Light',
+            node_def_id='HKHubLight',
+        )
+        self.assertIsNone(classify_node(mirrored))
+        self.assertIsNone(classify_node(mirrored, strict=True))
+
+    def test_kasa_color_strip_traits(self):
+        strip = FakeNode('n003_abc', 'Master TV Backlight', node_def_id='SmartLightStrip_DTCE')
+        traits = node_traits(strip)
+        self.assertEqual(classify_node(strip), 'light')
+        self.assertTrue(traits.color)
+        self.assertTrue(traits.color_temperature)
+        self.assertTrue(traits.dimmable)
+        self.assertTrue(traits.brightness_percent)
+        self.assertEqual(
+            light_optional_chars(traits),
+            ['Brightness', 'Hue', 'Saturation', 'ColorTemperature'],
+        )
+        self.assertEqual(kasa_sat_to_hap(254), 100)
+        self.assertEqual(hap_sat_to_kasa(100), 254)
+        self.assertEqual(kelvin_to_mired(2500), 400)
 
     def test_forced_hap_type_garage(self):
         node = FakeNode('x1', 'Mystery', node_def_id='RelayLampSwitch_ADV')
         self.assertEqual(classify_node(node, forced_hap_type='garage'), 'garage')
+
+    def test_node_debug_line_includes_nodedef_and_drivers(self):
+        node = FakeNode(
+            'n004_v',
+            'Bersaglio Main Flo Shutoff',
+            node_def_id='modev',
+            protocol='node_server',
+            aux_properties={
+                'ST': {'value': 0, 'uom': '25', 'formatted': 'Closed'},
+                'GV2': {'value': 1.2, 'uom': 'GPM'},
+            },
+        )
+        hap_type, via = explain_classification(node)
+        line = format_node_debug(node, hap_type=hap_type, via=via, exported=True)
+        self.assertEqual(hap_type, 'valve')
+        self.assertEqual(via, 'nodedef')
+        self.assertIn("nodeDef='modev'", line)
+        self.assertIn('ST=0(Closed)/25', line)
+        self.assertIn('GV2=1.2/GPM', line)
+        self.assertIn("class='valve'", line)
+        self.assertIn('export=yes', line)
+        unknown = FakeNode('n009_x', 'Widget', node_def_id='CustomWidget')
+        self.assertEqual(explain_classification(unknown)[1], 'unmapped')
+
+    def test_unknown_node_server_is_not_guessed(self):
+        plug_name = FakeNode('n009_x', 'Plug 3', node_def_id='CustomWidget')
+        controller = FakeNode('n001_c', 'Notification Controller', node_def_id='controller')
+        valve = FakeNode('n004_v', 'Bersaglio Main Flo Shutoff', node_def_id='modev')
+        self.assertIsNone(classify_node(plug_name))
+        self.assertIsNone(classify_node(plug_name, strict=True))
+        self.assertIsNone(classify_node(controller, strict=True))
+        self.assertEqual(classify_node(valve, strict=True), 'valve')
+
+    def test_capability_fallback_ignores_the_name(self):
+        dimmer = FakeNode('z1', 'Mystery', protocol='insteon', dimmable=True, node_def_id='WeirdDimmer')
+        relay = FakeNode('z2', 'Outdoor Light', protocol='insteon', node_def_id='WeirdRelay')
+        temp = FakeNode('z3', 'Hall', node_def_id='CustomTemp', aux_properties={'CLITEMP': 1})
+        air = FakeNode(
+            'z4',
+            'Wave',
+            node_def_id='Sensor',
+            aux_properties={'CLITEMP': 1, 'CLIHUM': 1, 'CO2LVL': 400},
+        )
+        self.assertEqual(classify_node(dimmer), 'light')
+        self.assertEqual(classify_node(relay), 'switch')
+        self.assertIsNone(classify_node(temp))
+        self.assertEqual(classify_node(temp, mapping_mode='broad'), 'temp_sensor')
+        self.assertIsNone(classify_node(air, mapping_mode='broad'))
 
 
 class GarageDoorMappingTests(unittest.TestCase):
@@ -183,7 +298,7 @@ class ScannerTests(unittest.TestCase):
 
     def test_all_mode_include_supported(self):
         nodes = [
-            Node('11 22 33 1', 'Kitchen', dimmable=True),
+            Node('11 22 33 1', 'Kitchen', dimmable=True, node_def_id='DimmerLampSwitch_ADV'),
             Node('11 22 33 2', 'Unknown', node_def_id='UnsupportedThing'),
         ]
         devices = scan_export_devices(

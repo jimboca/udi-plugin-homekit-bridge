@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from homekit_bridge.accessories.base import ISYAccessoryBase
+from homekit_bridge.color import aux_number
 
 
 class ISYContactAccessory(ISYAccessoryBase):
@@ -28,5 +29,9 @@ class ISYMotionAccessory(ISYAccessoryBase):
         self.sync_from_isy(notify=False)
 
     def sync_from_isy(self, notify: bool = True) -> None:
-        detected = self._isy_status() > 0
+        if getattr(self.exported.traits, 'motion_from_alarm', False):
+            alarm = aux_number(self.exported.node, 'ALARM')
+            detected = alarm is not None and alarm > 0
+        else:
+            detected = self._isy_status() > 0
         self._set_char(self._sensor, 'MotionDetected', detected, notify=notify)
