@@ -641,10 +641,13 @@ class Controller(Node):
         except Exception as exc:
             self.set_err(ERR_BRIDGE_START)
             self.bridge = None
-            self.Notices['advertise'] = (
-                f'HomeKit bridge failed to start ({exc}). '
-                'Check advertise_ip is a dotted IPv4 (or leave empty), then set Advertise On again.'
-            )
+            detail = f'HomeKit bridge failed to start ({exc}).'
+            lowered = str(exc).lower()
+            if 'address' in lowered or 'advertise' in lowered:
+                detail += (
+                    ' Check advertise_ip is a dotted IPv4 (or leave empty), then set Advertise On again.'
+                )
+            self.Notices['advertise'] = detail
             LOGGER.exception('Failed to start HomeKit bridge')
             return False
 

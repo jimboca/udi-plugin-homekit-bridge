@@ -101,7 +101,7 @@ Maps everyday home devices:
 - Lights, including dimmers, scenes, and Kasa color bulbs or light strips (hue, saturation, and color temperature when that nodeDef has them)
 - Switches and relays. Kasa plugs, each socket on a power strip, and Insteon OutletLinc use the HomeKit **Outlet** service. The strip itself (`SmartStrip HS300`) is a switch: HomeKit has no power-strip type, and that node's on/off switches every socket. Its status is on when any socket is on
 - Fans
-- Thermostats, including Ecobee nodeDefs
+- Thermostats, including Ecobee nodeDefs. An unknown IoX temperature does not stop the bridge from listening; that reading stays at the HomeKit default until IoX reports a number.
 - Contact and motion sensors. Camect detection nodes and a Camect camera are motion sensors
 - Door locks and window coverings, when the nodeDef is one of the known lock or shade types
 - Garage door openers (Konnected nodeDef `gdo`). The garage light (`gdolt`) stays a light. A switch named "garage door" stays a switch unless you set `hap_type=garage`

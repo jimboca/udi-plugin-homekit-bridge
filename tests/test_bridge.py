@@ -406,5 +406,16 @@ class MdnsDiagTests(unittest.TestCase):
         self.assertIn('other: \'Office Hallway\'', report)
 
 
+class ThermostatValueTests(unittest.TestCase):
+    def test_unknown_thermostat_temperature_is_not_infinity(self):
+        from homekit_bridge.accessories.thermostat import temperature_from_isy
+
+        self.assertEqual(temperature_from_isy(float('inf'), 21.0), 21.0)
+        self.assertEqual(temperature_from_isy(float('nan'), 21.0), 21.0)
+        self.assertEqual(temperature_from_isy(None, 21.0), 21.0)
+        self.assertEqual(temperature_from_isy('nope', 21.0), 21.0)
+        self.assertEqual(temperature_from_isy(72.0, 21.0), 72.0)
+
+
 if __name__ == '__main__':
     unittest.main()

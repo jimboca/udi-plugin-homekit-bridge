@@ -1,6 +1,6 @@
 """Shared constants for the IoX HomeKit exporter."""
 
-VERSION = '1.0.0'
+VERSION = '1.1.0'
 
 TYPED_EXPORT_DEVICES_KEY = 'export_devices'
 

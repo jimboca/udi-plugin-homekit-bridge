@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-11
+
 ### Added
 
 - Plugs and outlets advertise as the HomeKit **Outlet** service. Wall switches and relays stay switches.
@@ -14,6 +16,7 @@
 
 ### Fixed
 
+- An IoX thermostat with an unknown temperature (infinity) no longer crashes HomeKit startup. The bridge still listens, and that reading is left unset until IoX reports a number. One accessory that fails to build is skipped instead of stopping the listener.
 - A device is no longer typed from its name. Doorbell and Outdoor Light are not contact sensors, and a name containing "garage" is not a garage door. A garage door is the Konnected `gdo` nodeDef.
 - HomeKit Hub nodes (nodeDef `HKHub…`) and names ending with `(Pairing)` are not exported. Those nodes are the hub's copy of this bridge.
 - **Auto DR** (`ADR…`) is not exported. It is an IoX system scene, not a dimmer.

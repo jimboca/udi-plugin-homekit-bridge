@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 from typing import TYPE_CHECKING, Any, Callable, Optional
 
 from pyhap.accessory import Accessory
@@ -56,8 +57,28 @@ class ISYAccessoryBase(Accessory):
 
     def _set_char(self, service: Any, name: str, value: Any, notify: bool = True) -> None:
         """Set a HAP characteristic (HAP-python 5 has no configure_char notify=)."""
+        if isinstance(value, float) and not math.isfinite(value):
+            LOGGER.warning(
+                'Skipping %s on %s: non-finite value %r',
+                name,
+                self.exported.address,
+                value,
+            )
+            return
         char = service.get_characteristic(name)
-        char.set_value(value, should_notify=notify)
+        if char is None:
+            LOGGER.warning('No HomeKit characteristic %s on %s', name, self.exported.address)
+            return
+        try:
+            char.set_value(value, should_notify=notify)
+        except (OverflowError, ValueError):
+            LOGGER.warning(
+                'HomeKit rejected %s=%r on %s',
+                name,
+                value,
+                self.exported.address,
+                exc_info=True,
+            )
 
     def _subscribe_isy(self) -> None:
         node = self.exported.node

@@ -2,9 +2,25 @@
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
+from pyisy import constants as pyisy_constants
+
 from homekit_bridge.accessories.base import ISYAccessoryBase
+
+
+def temperature_from_isy(value: Any, default: float) -> float:
+    """IoX unknown status is infinity. HAP rejects that and aborts bridge start."""
+    if value is None or value == pyisy_constants.ISY_VALUE_UNKNOWN:
+        return default
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return default
+    if not math.isfinite(number):
+        return default
+    return number
 
 
 class ISYThermostatAccessory(ISYAccessoryBase):
@@ -16,14 +32,7 @@ class ISYThermostatAccessory(ISYAccessoryBase):
         self.sync_from_isy(notify=False)
 
     def _node_value(self, attr: str, default: float) -> float:
-        node = self.exported.node
-        value = getattr(node, attr, None)
-        if value is None:
-            return default
-        try:
-            return float(value)
-        except (TypeError, ValueError):
-            return default
+        return temperature_from_isy(getattr(self.exported.node, attr, None), default)
 
     def _set_chars(self, char_values: dict) -> None:
         if 'TargetTemperature' in char_values:

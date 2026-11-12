@@ -130,7 +130,15 @@ class IsyHomeKitBridge:
             bridge = Bridge(self._driver, self.bridge_name)
             self._accessories = {}
             for device in devices:
-                acc = build_accessory(self._driver, device, on_isy_change=self._on_isy_change)
+                try:
+                    acc = build_accessory(self._driver, device, on_isy_change=self._on_isy_change)
+                except Exception:
+                    LOGGER.exception(
+                        'Skipping HomeKit accessory %s (%s); the bridge will still start',
+                        getattr(device, 'address', '?'),
+                        getattr(device, 'display_name', '?'),
+                    )
+                    continue
                 bridge.add_accessory(acc)
                 self._accessories[device.address] = acc
             self._driver.add_accessory(accessory=bridge)
@@ -159,7 +167,7 @@ class IsyHomeKitBridge:
                 'HomeKit bridge listening on %s:%s (%d accessories, mDNS registered)',
                 bind_ip or getattr(self._driver.state, 'address', 'auto'),
                 self.hap_port,
-                len(devices),
+                len(self._accessories),
             )
             if self.on_paired_change:
                 self.on_paired_change(self.is_paired())
